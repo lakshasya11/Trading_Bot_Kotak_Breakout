@@ -346,20 +346,15 @@ async def get_performance(service: TradingBotService = Depends(get_bot_service))
         }
     else:
         # Fallback to Database Summary
+        # Fallback to Database Summary
         def get_db_summary():
             try:
-                import sqlite3
-                from core.database import TODAY_DB_PATH
-                if not os.path.exists(TODAY_DB_PATH): return None
-                
                 # MULTI-USER FILTERING
                 user_info = _get_active_user_info()
                 active_user_name = user_info.get("name", "Unknown")
                 
-                with sqlite3.connect(TODAY_DB_PATH) as conn:
-                    conn.row_factory = sqlite3.Row
-                    cursor = conn.cursor()
-                    cursor.execute("""
+                with today_engine.connect() as conn:
+                    query = sql_text("""
                         SELECT 
                             SUM(pnl) as grossPnl, 
                             SUM(charges) as totalCharges, 
@@ -368,18 +363,19 @@ async def get_performance(service: TradingBotService = Depends(get_bot_service))
                             SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
                             SUM(CASE WHEN pnl <= 0 THEN 1 ELSE 0 END) as losses
                         FROM trades
-                        WHERE (user_name = ? OR user_name IS NULL)
-                    """, (active_user_name,))
-                    row = cursor.fetchone()
-                    if row and row['trades_today'] > 0:
+                        WHERE (user_name = :user OR user_name IS NULL)
+                    """)
+                    result = conn.execute(query, {"user": active_user_name}).mappings().fetchone()
+                    
+                    if result and result['trades_today'] > 0:
                         return {
-                            "grossPnl": row['grossPnl'] or 0,
-                            "totalCharges": row['totalCharges'] or 0,
-                            "netPnl": row['netPnl'] or 0,
-                            "net_pnl": row['netPnl'] or 0,
-                            "wins": row['wins'] or 0,
-                            "losses": row['losses'] or 0,
-                            "trades_today": row['trades_today'] or 0
+                            "grossPnl": result['grossPnl'] or 0,
+                            "totalCharges": result['totalCharges'] or 0,
+                            "netPnl": result['netPnl'] or 0,
+                            "net_pnl": result['netPnl'] or 0,
+                            "wins": result['wins'] or 0,
+                            "losses": result['losses'] or 0,
+                            "trades_today": result['trades_today'] or 0
                         }
             except Exception as e:
                 print(f"Error getting performance summary from DB: {e}")

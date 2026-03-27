@@ -1,42 +1,38 @@
 import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import QueuePool
+from dotenv import load_dotenv
 
-# --- THIS IS THE FIX: Use the parent directory of 'core' ---
-# Get the directory where this script ('database.py') is located, which is the 'core' folder
-CORE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Load environment variables from .env
+load_dotenv()
 
-# Get the parent directory of 'core', which is the 'backend' root folder
-BASE_DIR = os.path.dirname(CORE_DIR)
+# Get PostgreSQL credentials from environment
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_NAME_TODAY = os.getenv("DB_NAME_TODAY", "trading_kotak_today")
+DB_NAME_ALL = os.getenv("DB_NAME_ALL", "trading_kotak_all")
 
-# Define the database file names
-TODAY_DB_NAME = "trading_data_today.db"
-ALL_DB_NAME = "trading_data_all.db"
+# PostgreSQL connection strings
+DATABASE_URL_TODAY = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME_TODAY}"
+DATABASE_URL_ALL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME_ALL}"
 
-# Create the full, absolute paths to the database files
-# os.path.join will now place them in the 'backend' root directory
-TODAY_DB_PATH = os.path.join(BASE_DIR, TODAY_DB_NAME)
-ALL_DB_PATH = os.path.join(BASE_DIR, ALL_DB_NAME)
-
-# SQLAlchemy database URLs for SQLite using the absolute paths
-DATABASE_URL_TODAY = f"sqlite:///{TODAY_DB_PATH}"
-DATABASE_URL_ALL = f"sqlite:///{ALL_DB_PATH}"
-
-# Create a shared engine for each database.
+# Create engines with PostgreSQL pool configuration
 today_engine = create_engine(
     DATABASE_URL_TODAY,
-    connect_args={"check_same_thread": False},
     poolclass=QueuePool,
-    pool_size=5,
-    max_overflow=2
+    pool_size=10,
+    max_overflow=5,
+    pool_recycle=3600
 )
 
 all_engine = create_engine(
     DATABASE_URL_ALL,
-    connect_args={"check_same_thread": False},
     poolclass=QueuePool,
-    pool_size=5,
-    max_overflow=2
+    pool_size=10,
+    max_overflow=5,
+    pool_recycle=3600
 )
 
 # Export the 'text' function for convenience

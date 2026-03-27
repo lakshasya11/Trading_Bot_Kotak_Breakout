@@ -14,7 +14,7 @@ This is the FastAPI backend for a multi-strategy algorithmic trading bot. It han
   - Unusual Options Activity (UOA) Scanner
 - **Risk Management**: Automated calculation of trade quantity based on capital and user-defined risk per trade.
 - **Position Management**: Handles entries, partial profit-taking, and trailing stop-losses.
-- **Persistent Logging**: All trades are logged to a SQLite database for long-term performance analysis.
+- **Persistent Logging**: All trades are logged to a PostgreSQL database for long-term performance analysis.
 - **Parameter Optimization**: Includes a module to analyze historical performance and suggest parameter adjustments.
 - **Frontend Communication**: Pushes real-time status, trade updates, and chart data to the UI via WebSockets.
 
@@ -24,7 +24,7 @@ This is the FastAPI backend for a multi-strategy algorithmic trading bot. It han
 - **Server**: Uvicorn, Gunicorn
 - **Broker API**: KiteConnect
 - **Data Handling**: Pandas, NumPy
-- **Database**: SQLite
+- **Database**: PostgreSQL
 - **Async**: asyncio
 
 ## 📋 Prerequisites

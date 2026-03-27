@@ -34,7 +34,7 @@ class TradeLogger:
         """
         create_table_sql = sql_text('''
             CREATE TABLE IF NOT EXISTS trades (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 timestamp TEXT NOT NULL,
                 trigger_reason TEXT NOT NULL,
                 symbol TEXT,
@@ -64,8 +64,15 @@ class TradeLogger:
         def upgrade_schema(engine):
             with engine.connect() as conn:
                 conn.execute(create_table_sql)
-                cursor = conn.execute(sql_text("PRAGMA table_info(trades);"))
-                columns = [row[1] for row in cursor]
+                
+                # PostgreSQL schema introspection
+                query = sql_text("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'trades'
+                """)
+                cursor = conn.execute(query)
+                columns = [row[0] for row in cursor]
                 
                 # Add missing columns if they don't exist
                 new_columns = [
@@ -113,7 +120,9 @@ class TradeLogger:
                     if col_name not in columns:
                         conn.execute(sql_text(f"ALTER TABLE trades ADD COLUMN {col_name} {col_type};"))
                 
-                if hasattr(conn, 'commit'): conn.commit() 
+                # SQLAlchemy engines with autocommit=False (default) need explicit commit
+                # if inside a manual connection (not engine.begin())
+                conn.commit() 
 
         upgrade_schema(today_engine)
         upgrade_schema(all_engine)
